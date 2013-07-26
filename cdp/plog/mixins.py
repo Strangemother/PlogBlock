@@ -95,5 +95,9 @@ class PlogBlockMixin(MixinBase):
         '''
         header_line = args[0]
         # Loop blocks.
+        _blocks = []
         for block in blocks:
-            block.header == header_line
+            if block.header.match(header_line):
+                _blocks.append(_block)
+
+        return _blocks
