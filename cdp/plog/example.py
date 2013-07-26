@@ -1,12 +1,11 @@
-example.py
 # Some working samples of plog
 
 
 CDP_DATA = '''
 Device ID: SEP001F9EAB59F1
-Entry address(es): 
+Entry address(es):
   IP address: 10.243.14.48
-Platform: Cisco IP Phone 7941,  Capabilities: Host Phone 
+Platform: Cisco IP Phone 7941,  Capabilities: Host Phone
 Interface: FastEthernet0/15,  Port ID (outgoing port): Port 1
 Holdtime : 124 sec
 
@@ -17,8 +16,8 @@ advertisement version: 2
 Duplex: full
 Power drawn: 6.300 Watts
 Power request id: 23025, Power management id: 3
-Power request levels are:6300 0 0 0 0 
-Management address(es): 
+Power request levels are:6300 0 0 0 0
+Management address(es):
 '''
 
 plog = Plog(CDP_DATA)
@@ -37,7 +36,7 @@ PlogBlock()
 f = open('file.txt')
 plog = Plog(f)
 
-# Usage Cisco CDP 
+# Usage Cisco CDP
 f = open('file.txt')
 cdp = Plog(f)
 cdp.whitespace = '|'
@@ -61,26 +60,26 @@ cdp.add_block(header_block)
 # The name provided for the variable becomes
 # the ref of the psuedo PlogBlock
 # The tuple of tuples applied will be in format
-# 
+#
 # (header_line, terminator
 #   (line, )
 #   (line, )
 #  )
-#  
-#  the first value can be a PlogLine, 
+#
+#  the first value can be a PlogLine,
 #  or a tuple of (header_line, terminator_line).
 #  Values after are parsed as PlogLinePatterns
 #  to match as lines within the block
 
 #  Each line is a PlockLinePattern definition or
 #  a tuple for associated types
-#  Terminator is optional, pass no 
+#  Terminator is optional, pass no
 cdp.block.device = ('Device ID')
 
 cdp.block.device = PlogBlockPatten('Device ID')
 
 # To assist in itteration, create
-# a block - a repeated element 
+# a block - a repeated element
 # within the log
 
 
@@ -88,7 +87,7 @@ cdp.block.device = PlogBlockPatten('Device ID')
 A PlogBlock is a definition for a single
 repeated object within your log.
 Consider a single bash command:
-    
+
     $ ls
     foo bar env readme.md app*
 '''
@@ -107,18 +106,18 @@ discovering occurances.
 
 '''
 The short syntax allows the feature
-to name and define your block within an 
-inline fashion. This is the same as 
+to name and define your block within an
+inline fashion. This is the same as
 passing a PlogBlock
 
     block - required block PlogBlock style string
     device - becomes PlogBlock ref
 
-Passing a reference PlogBlockPatten 
+Passing a reference PlogBlockPatten
 or a tuple shape will be parsed into a working
 PlogBlock
     First object will be the block header
-cdp.block.device = ( 
+cdp.block.device = (
         PlogLine('ls')
     )
 '''
