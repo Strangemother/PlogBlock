@@ -48,23 +48,31 @@ def test_add_block_string():
 def test_line():
     '''Pass a string to the PlogLine,
     it should __eq__ a string correctly.'''
+    
     string = 'Device'
     line = PlogLine(string)
     assert line == string
 
 def test_block_header():
     ''' Add the first line to a block and check it's added as a header'''
+
     line = PlogLine('Device')
     block = PlogBlock(line)
     assert block.header == line
 
 def test_block_header_string_cast():
     '''Plog block is given a string, block.header should exist'''
+
     block = PlogBlock('Device')
     assert type(block.header) == PlogLine
 
 
 def test_enumerate():
+    '''
+    Check to ensure the enumeration of a file or string 
+    is exaclty the length of lines for the supplied.
+    '''
+
     CDP_DATA = '''Device ID: SEP001F9EAB59F1
     Entry address(es):
       IP address: 10.243.14.48
@@ -75,6 +83,6 @@ def test_enumerate():
     plog._c = 0
     def counts(line):
         plog._c = plog._c + 1
-    # plog.run(counts)
 
-    # assert plog._c == 6
+    plog.run(counts)
+    assert plog._c == 6

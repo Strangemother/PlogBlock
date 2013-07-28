@@ -50,6 +50,7 @@ class PlogFileMixin(MixinBase):
         '''
         return self.get_data()
 
+
 class PlogBlockMixin(MixinBase):
     '''
     Methods to assist block design on on a class
@@ -90,14 +91,18 @@ class PlogBlockMixin(MixinBase):
 
     def get_blocks_with_header(self, *args):
         '''
-        Pass on or many PlogLines and return all matching
+        Pass one or many PlogLines and return all matching
         blocks with the headers of that type.
         '''
+
         header_line = args[0]
         # Loop blocks.
         _blocks = []
-        for block in blocks:
+
+        for block in self.blocks:
             if block.header.match(header_line):
-                _blocks.append(_block)
+                print '> Block', block, 'Matches',  header_line
+                
+                _blocks.append(block)
 
         return _blocks

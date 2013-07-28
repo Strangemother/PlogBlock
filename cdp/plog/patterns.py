@@ -160,11 +160,11 @@ class PlogBlock(PlogPattern):
         self.footer_line(footer_line)
 
     def __repr__(self):
-        s = self.header if self.ref is None else self.header.format
+        s = self.header.format if self.ref is None else self.ref
         return '<PlogBlock: \'%s\'>' % s
 
     def __str__(self):
-        s = self.header if self.ref is None else self.header
+        s = self.header if self.ref is None else self.ref
         return '<PlogBlock: %s>' % s
 
     def header():
@@ -223,23 +223,25 @@ class PlogBlock(PlogPattern):
 class PlogLine(PlogPattern):
     # Define a line to match based upon it's value
     '''Define a single line to match'''
-    def __init__(self, format=None, block=None):
+    def __init__(self, value=None, block=None):
         '''
         Pass block to define the parent block object of this
         line. This may be None
         '''
-        self.format = format
+        self.value = value
         self.block = block
 
-    def match(self, value):
+    def match(self, line):
         '''
-        Return True/False if the value matches the format.
+        recieve a plogline
+        Return True/False if the value matches the value.
         '''
+        return line == self.value
 
     def __str__(self):
-        return 'PlogLine: \"%s\"' % (self.format)
+        return 'PlogLine: \"%s\"' % (self.value)
 
     def __repr__(self):
         return '<%s>' % self.__str__()
     def __eq__(self, other):
-        return self.format == other
+        return self.value == other

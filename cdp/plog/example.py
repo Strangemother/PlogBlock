@@ -121,3 +121,17 @@ cdp.block.device = (
         PlogLine('ls')
     )
 '''
+
+# What is Plog
+
+'''
+Plog is a simple tool to convert log files into a more digestable format.
+Consider a log file for cisco CDP device readouts. By applying a few
+simple PlogBlock rules, the file will be converted into a digestable format.
+
+A PlogBlock defines a repeated section of your log - Chunking the data into 
+smaller definable bites.
+
+A PlogLine defines a single line to detect within the log. You can also apply
+PlogLines to PlogBlocks for a more defined pattern
+'''

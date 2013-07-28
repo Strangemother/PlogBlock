@@ -8,6 +8,8 @@ api into the django model
 
 
 import mixins
+from patterns import PlogLine, PlogBlock
+
 
 class Plog( mixins.PlogFileMixin,
             mixins.PlogBlockMixin):
@@ -34,7 +36,7 @@ class Plog( mixins.PlogFileMixin,
 
         _file = self.get_file()
         for line in _file:
-            parser(line)
+            parser(line[:-1])
 
     def parse_line(self, line):
         '''
