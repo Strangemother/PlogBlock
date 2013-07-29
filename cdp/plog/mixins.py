@@ -70,6 +70,11 @@ class PlogBlockMixin(MixinBase):
         return locals()
     blocks = property(**blocks())
 
+    def compile_blocks(self):
+        '''Call each block to compile as needed'''
+        for block in self.blocks:
+            block.compile()
+
     def add_blocks(self, *args):
         '''
         Add a list of blocks to append
@@ -100,7 +105,8 @@ class PlogBlockMixin(MixinBase):
         _blocks = []
 
         for block in self.blocks:
-            if block.header.match(header_line):
+            mtch, reg = block.header.match(header_line)
+            if mtch:
                 print '> Block', block, 'Matches',  header_line
                 
                 _blocks.append(block)

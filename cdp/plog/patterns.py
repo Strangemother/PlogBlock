@@ -1,5 +1,9 @@
 import re
 
+class PatternBase(object):
+    ''' Base mixin object of all Plog Mixins to inherit'''
+    def __init__(self):
+        pass
 
 def re_escape(fn):
     def arg_escaped(this, *args):
@@ -8,7 +12,7 @@ def re_escape(fn):
     return arg_escaped
 
 
-class VerEx(object):
+class VerEx(PatternBase):
     '''
     --- VerbalExpressions class ---
     the following methods behave different from the original js lib!
@@ -26,11 +30,6 @@ class VerEx(object):
         self.s = ''
         self.modifiers = {'I': 0, 'M': 0}
 
-    def __getattr__(self, attr):
-        ''' any other function will be sent to the regex object '''
-        regex = self.regex()
-        return getattr(regex, attr)
-
     def add(self, value):
         self.s += value
         return self
@@ -38,7 +37,6 @@ class VerEx(object):
     def regex(self):
         ''' get a regular expression object. '''
         return re.compile(self.s, self.modifiers['I'] | self.modifiers['M'])
-    compile = regex
 
     def source(self):
         ''' return the raw string'''
@@ -120,11 +118,12 @@ class PlogPattern(VerEx):
     '''
     Define a pattern to match within a plog line
     '''
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         '''
         defined to be a set of attributes to
         filter the object definition
         '''
+        super(PlogPattern, self).__init__(*args, **kwargs)
         if len(args) > 0:
             self.__value = args[0]
 
@@ -143,7 +142,7 @@ class PlogBlock(PlogPattern):
     '''
 
     def __init__(self, header_line=None, \
-        footer_line=None, ref=None):
+        footer_line=None, ref=None, *args, **kwargs):
         '''
         Pass the PlogLine used to
         validate a header of a given block.
@@ -151,9 +150,12 @@ class PlogBlock(PlogPattern):
         The footer_line is optional but would
         automatically terminate upon a new block.
         '''
+        super(PlogBlock, self).__init__(*args, **kwargs)
+
         self._header_line = None
         self._footer_line = None
-
+        self.compiled = None
+        self.pre_compile = kwargs.get('pre_compile', True)
         self.ref = ref
 
         self.header_line(header_line)
@@ -167,6 +169,15 @@ class PlogBlock(PlogPattern):
         s = self.header if self.ref is None else self.ref
         return '<PlogBlock: %s>' % s
 
+    def compile(self):
+        '''Compile the header object ready to match testing'''
+        if self.pre_compile == True:
+            if self.header:
+                self.compiled = self.header.compile()
+            else:
+                self.compiled = None
+        return self.compiled
+                
     def header():
         doc = "The headerline for the PlogBlock"
         def fget(self):
@@ -223,20 +234,71 @@ class PlogBlock(PlogPattern):
 class PlogLine(PlogPattern):
     # Define a line to match based upon it's value
     '''Define a single line to match'''
-    def __init__(self, value=None, block=None):
+
+    # method of pattern matching for the regex checking
+    method = 'match' # 'search'
+
+    def __init__(self, value=None, block=None, **kwargs):
         '''
         Pass block to define the parent block object of this
         line. This may be None
         '''
+        
+        # the value found on the last match() method call
+        self.matched = None
+
         self.value = value
         self.block = block
+        super(PlogPattern, self).__init__()
+
+        # Assign kwargs correctly into the pattern style. 
+
+
+
+    def startswith(self, value):
+
+        self.start_of_line()
+        return self.then(value)
+        
+
+    def compile(self):
+        '''
+        ready the matching re regex item for later use. this method considers
+        the current regex start and fixes it accordingly.
+        '''
+        if self.value == '':
+            self.compiled = None
+        else:
+            self.startswith(self.value)
+            self.anything()
+            self.compiled = self.regex()
+        return self.compiled
+
 
     def match(self, line):
         '''
         recieve a plogline
-        Return True/False if the value matches the value.
+        Return tuple of True/False if the value matches the value 
+        and the matched object if one exists.
         '''
-        return line == self.value
+        matched = None
+        if self.compiled:
+            matcher = getattr(self.compiled, self.__class__.method)
+            matched = matcher(line.value)
+
+        if matched:
+            groups = matched.group()
+            self.matched = matched.string
+            return (True, self.matched)
+        else:
+            v = line == self.get_value()
+            return (v, None)
+
+    def get_value(self):
+        return self.value
+
+    def set_value(self, value):
+        self.value = value
 
     def __str__(self):
         return 'PlogLine: \"%s\"' % (self.value)

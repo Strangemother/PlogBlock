@@ -1,11 +1,18 @@
 '''
-The api reads through the given
-file, provided starters, terminators
+Plog.
+
+The api reads through the given file, provided starters, terminators
 and key value pair definitions, output it parsed
 and applied to an object - later passed through the
 api into the django model
-'''
 
+Usage: 
+    api.py 
+
+Options:
+    --pre-compile=False Optionally don't complile string patterns before use
+'''
+import docopt
 
 import mixins
 from patterns import PlogLine, PlogBlock
@@ -33,6 +40,8 @@ class Plog( mixins.PlogFileMixin,
 
         if parser is None:
             parser = self.parse_line
+
+        self.compile_blocks()
 
         _file = self.get_file()
         for line in _file:
