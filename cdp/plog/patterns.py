@@ -164,17 +164,21 @@ class PlogBlock(PlogPattern):
 
     def __repr__(self):
         s = self.header.format if self.ref is None else self.ref
-        return '<PlogBlock: \'%s\'>' % s
+        c = len(self.data)
+        return '<PlogBlock: \'%s\'~%s>' % (s, c)
 
     def __str__(self):
+
         s = self.header if self.ref is None else self.ref
-        return '<PlogBlock: %s>' % s
+        c = len(self.data)
+        return "<PlogBlock: %s~%s>" % (s, c)
 
     def add_data(self, data):
         self.data.append(data)
 
     def compile(self):
         '''Compile the header object ready to match testing'''
+       
         if self.pre_compile == True:
             if self.header:
                 self.compiled = self.header.compile()
@@ -207,6 +211,7 @@ class PlogBlock(PlogPattern):
     def header_line(self, plog_line):
         ''' The header line of the block
         to validate a start object.'''
+        
         line = plog_line
         if type(plog_line) == str:
             line = PlogLine(plog_line)
@@ -218,6 +223,7 @@ class PlogBlock(PlogPattern):
     def footer_line(self, plog_line):
         ''' The footer line of the block
         to validate a start object.'''
+        
         self._footer_line = plog_line
 
     def get_footer_line(self):
@@ -310,9 +316,10 @@ class PlogLine(PlogPattern):
         self.value = value
 
     def __str__(self):
-        return 'PlogLine: \"%s\"' % (self.value)
+        return 'PlogLine: \"%s\":#%s' % (self.value, self.line_no)
 
     def __repr__(self):
         return '<%s>' % self.__str__()
+        
     def __eq__(self, other):
         return self.value == other

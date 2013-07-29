@@ -58,7 +58,7 @@ class Plog( mixins.PlogFileMixin,
         self.print_status()
 
     def print_status(self):
-        print 'PlogBlocks'
+        print 'PlogBlocks', self.blocks
 
     def parse_line(self, line, *args, **kwargs):
         '''
@@ -66,7 +66,6 @@ class Plog( mixins.PlogFileMixin,
         a single line string to parse and apply PlogLine
         and PlogBlock
         '''
-
         # Make a plog line.
         pline = PlogLine(line, line_no=kwargs.get('line_no', -1))
 
@@ -76,11 +75,12 @@ class Plog( mixins.PlogFileMixin,
 
         for block in blocks:
             if block.is_open:
+                # if block is open, validate and
+                # parse its lines only - 
                 block.add_data(line)
                 block.close()
+
             
-            block.open()
-            block.add_data(line)
 
 
 

@@ -82,9 +82,8 @@ class PlogBlockMixin(MixinBase):
         '''
         
         print '> Block', block
-        print '  Line', line, line.line_no
-        print '  Str', string, string.line_no
-        print '  Reg', reg
+        print '  Match', line
+        print '  Found', string, '\n'
 
 
     def compile_blocks(self):
