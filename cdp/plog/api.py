@@ -16,7 +16,11 @@ import docopt
 
 import mixins
 from patterns import PlogLine, PlogBlock
+from termcolor import colored
+import sys
 
+from colorama import init
+init()
 
 class Plog( mixins.PlogFileMixin,
             mixins.PlogBlockMixin):
@@ -34,6 +38,9 @@ class Plog( mixins.PlogFileMixin,
     def __init__(self, *args, **kwargs):
         self.open_box = None
         self.hash_state = {}
+        self.line_count = 0
+        self.data_blocks = []
+        self.open_blocks = {}
         super(Plog, self).__init__(*args, **kwargs)
 
     def run(self, parser=None):
@@ -58,7 +65,9 @@ class Plog( mixins.PlogFileMixin,
         self.print_status()
 
     def print_status(self):
-        print 'PlogBlocks', self.blocks
+        print 'finish'
+        print 'PlogBlocks', len(self.blocks)
+        print 'DataBlocks', len(self.data_blocks)
 
     def parse_line(self, line, *args, **kwargs):
         '''
@@ -69,18 +78,51 @@ class Plog( mixins.PlogFileMixin,
         # Make a plog line.
         pline = PlogLine(line, line_no=kwargs.get('line_no', -1))
 
+        self.line_count += 1
         # Find header_line blocks matching this pline
-        blocks = self.get_blocks_with_header(pline)
+        blocks, header = self.get_blocks_with_header_footer(pline)
         # one or more blocks detected
+        pr = ''
 
         for block in blocks:
-            if block.is_open:
-                # if block is open, validate and
-                # parse its lines only - 
-                block.add_data(line)
-                block.close()
 
+            # import pdb; pdb.set_trace()
+            if block.is_open is not True and header:
+                block.open()
+                bl = PlogBlock(ref=block.ref)
+                self.open_blocks[block] = bl
+                pr = '#%s+' % colored(pline.line_no, 'grey')
+                print
+            else:
+                self.open_blocks[block].add_data(pline)
+
+                if header is not True:
+                    block.close()
+                    # Finished block
+                    # import pdb;pdb.set_trace()
+                    data_block = self.open_blocks[block]
+                    self.data_blocks.append(data_block)
+                    self.open_blocks[block] = None
+                    pr = colored('-', 'red')
+                    s = '~%s#%s' % (
+                            colored(len(data_block.data), 'grey'), 
+                            colored(pline.line_no, 'grey'), 
+                        )
+                    sys.stdout.write(s)
+   
+        for block in self.open_blocks:
+            if block.is_open:
+                self.open_blocks[block].add_data(pline)
+                pr = '%s%s' % (pr, colored('.', 'grey') )
+
+        bl = len(blocks)
+        
+        if bl > 0:
+            ct = ( colored('[', 'grey'), colored('%s' % bl, 'white'), colored(']', 'grey'), )
+            d = "%s%s%s" % ct
+            sys.stdout.write(d)
             
+        sys.stdout.write(pr)
 
 
 

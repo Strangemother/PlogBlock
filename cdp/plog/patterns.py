@@ -159,8 +159,8 @@ class PlogBlock(PlogPattern):
         self.pre_compile = kwargs.get('pre_compile', True)
         self.ref = ref
         self.data = []
-        self.header_line(header_line)
-        self.footer_line(footer_line)
+        self.set_header_line(header_line)
+        self.set_footer_line(footer_line)
 
     def __repr__(self):
         s = self.header.format if self.ref is None else self.ref
@@ -181,10 +181,17 @@ class PlogBlock(PlogPattern):
        
         if self.pre_compile == True:
             if self.header:
-                self.compiled = self.header.compile()
+                self.header_compiled = self.header.compile()
             else:
-                self.compiled = None
-        return self.compiled
+                self.header_compiled = None
+
+        if self.pre_compile == True:
+            if self.footer:
+                self.footer_compiled = self.footer.compile()
+            else:
+                self.footer_compiled = None
+
+        return (self.header_compiled, self.footer_compiled)
                 
     def header():
         doc = "The headerline for the PlogBlock"
@@ -208,7 +215,7 @@ class PlogBlock(PlogPattern):
         return locals()
     footer = property(**footer())
 
-    def header_line(self, plog_line):
+    def set_header_line(self, plog_line):
         ''' The header line of the block
         to validate a start object.'''
         
@@ -220,11 +227,13 @@ class PlogBlock(PlogPattern):
     def get_header_line(self):
         return self._header_line
 
-    def footer_line(self, plog_line):
+    def set_footer_line(self, plog_line):
         ''' The footer line of the block
         to validate a start object.'''
-        
-        self._footer_line = plog_line
+        line = plog_line
+        if type(plog_line) == str:
+            line = PlogLine(plog_line)
+        self._footer_line = line
 
     def get_footer_line(self):
         return self._footer_line
@@ -320,6 +329,6 @@ class PlogLine(PlogPattern):
 
     def __repr__(self):
         return '<%s>' % self.__str__()
-        
+
     def __eq__(self, other):
         return self.value == other

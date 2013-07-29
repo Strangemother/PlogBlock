@@ -81,9 +81,9 @@ class PlogBlockMixin(MixinBase):
         reg {regex} - Regex SRE match object (if it exists)
         '''
         
-        print '> Block', block
-        print '  Match', line
-        print '  Found', string, '\n'
+        #print '> Block', block
+        #print '  Match', line
+        #print '  Found', string, '\n'
 
 
     def compile_blocks(self):
@@ -132,3 +132,30 @@ class PlogBlockMixin(MixinBase):
                 _blocks.append(block)
                 self.block_match(block, block.header, header_line, reg)
         return _blocks
+
+    def get_blocks_with_header_footer(self, *args):
+        '''
+        Pass one or many PlogLines and return all matching
+        blocks with the headers of that type.
+        '''
+
+        mline = args[0]
+        # Loop blocks.
+        _blocks = []
+
+        for block in self.blocks:
+            mtch, reg = block.header.match(mline)
+            mtch_f, reg_f = block.footer.match(mline)
+            if mtch_f or mtch:
+                _blocks.append(block)
+
+            if mtch:
+                self.block_match(block, block.header, mline, reg or reg_f)
+
+            if mtch_f:
+                self.block_match(block, block.footer, mline, reg or reg_f)
+                
+
+        return (_blocks, True if mtch else False, )
+
+
