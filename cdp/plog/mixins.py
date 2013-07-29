@@ -70,10 +70,32 @@ class PlogBlockMixin(MixinBase):
         return locals()
     blocks = property(**blocks())
 
+    def block_match(self, block, line, string, reg):
+        '''
+        Method called upon a successfull match of a block 
+        header 
+
+        block {PlogBlock} - The block containing the matched PlogLine
+        line {PlogLine} - PlogLine matched 
+        string {str} - String matched from file
+        reg {regex} - Regex SRE match object (if it exists)
+        '''
+        
+        print '> Block', block
+        print '  Line', line, line.line_no
+        print '  Str', string, string.line_no
+        print '  Reg', reg
+
+
     def compile_blocks(self):
         '''Call each block to compile as needed'''
         for block in self.blocks:
             block.compile()
+    
+    def close_blocks(self):
+        for block in self.blocks:
+            if block.is_open:
+                block.close()
 
     def add_blocks(self, *args):
         '''
@@ -94,6 +116,7 @@ class PlogBlockMixin(MixinBase):
             _block = patterns.PlogBlock(block)
         self._blocks.append(_block)
 
+
     def get_blocks_with_header(self, *args):
         '''
         Pass one or many PlogLines and return all matching
@@ -107,8 +130,6 @@ class PlogBlockMixin(MixinBase):
         for block in self.blocks:
             mtch, reg = block.header.match(header_line)
             if mtch:
-                print '> Block', block, 'Matches',  header_line
-                
                 _blocks.append(block)
-
+                self.block_match(block, block.header, header_line, reg)
         return _blocks

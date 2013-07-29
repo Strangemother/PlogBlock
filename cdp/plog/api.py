@@ -31,6 +31,11 @@ class Plog( mixins.PlogFileMixin,
     # into a line.
     terminator = ';'
 
+    def __init__(self, *args, **kwargs):
+        self.open_box = None
+        self.hash_state = {}
+        super(Plog, self).__init__(*args, **kwargs)
+
     def run(self, parser=None):
         '''
         Begin the process, working the passed
@@ -44,10 +49,18 @@ class Plog( mixins.PlogFileMixin,
         self.compile_blocks()
 
         _file = self.get_file()
+        line_no = 0
         for line in _file:
-            parser(line[:-1])
+            line_no += 1
+            parser(line[:-1], line_no=line_no)
 
-    def parse_line(self, line):
+        self.close_blocks()
+        self.print_status()
+
+    def print_status(self):
+        print 'PlogBlocks'
+
+    def parse_line(self, line, *args, **kwargs):
         '''
         method is passed to the run and receives
         a single line string to parse and apply PlogLine
@@ -55,10 +68,21 @@ class Plog( mixins.PlogFileMixin,
         '''
 
         # Make a plog line.
-        pline = PlogLine(line)
+        pline = PlogLine(line, line_no=kwargs.get('line_no', -1))
 
         # Find header_line blocks matching this pline
-        block = self.get_blocks_with_header(pline)
+        blocks = self.get_blocks_with_header(pline)
+        # one or more blocks detected
+
+        for block in blocks:
+            if block.is_open:
+                block.add_data(line)
+                block.close()
+            
+            block.open()
+            block.add_data(line)
+
+
 
         # Matched blocks with this as a header_line
         # blocks =

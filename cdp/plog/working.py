@@ -52,6 +52,7 @@ empty_block = PlogBlock('', ref='empty')
 device_block = PlogBlock('Device ID', ref='Device')
 plog.add_blocks(device_block)
 
+
 def runner(line):
     print '"%s"' % ( line )
 

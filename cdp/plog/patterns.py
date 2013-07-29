@@ -152,12 +152,13 @@ class PlogBlock(PlogPattern):
         '''
         super(PlogBlock, self).__init__(*args, **kwargs)
 
+        self.is_open = False
         self._header_line = None
         self._footer_line = None
         self.compiled = None
         self.pre_compile = kwargs.get('pre_compile', True)
         self.ref = ref
-
+        self.data = []
         self.header_line(header_line)
         self.footer_line(footer_line)
 
@@ -168,6 +169,9 @@ class PlogBlock(PlogPattern):
     def __str__(self):
         s = self.header if self.ref is None else self.ref
         return '<PlogBlock: %s>' % s
+
+    def add_data(self, data):
+        self.data.append(data)
 
     def compile(self):
         '''Compile the header object ready to match testing'''
@@ -219,12 +223,17 @@ class PlogBlock(PlogPattern):
     def get_footer_line(self):
         return self._footer_line
 
+    def open(self):
+        ''' Open the block during file enumeration to 
+        begin recieve lines'''
+        self.is_open = True
+
+    def close(self):
+        self.is_open = False
+
     def lines(self):
-        '''
-        Return a list of lines applied to the
-        block when the block has received some
-        content.
-        '''
+        ''' Return a list of lines applied to the
+        block when the block has received some content.'''
 
 # Device ID: AH1CMSW07
 # Entry address(es):
@@ -246,7 +255,7 @@ class PlogLine(PlogPattern):
         
         # the value found on the last match() method call
         self.matched = None
-
+        self.line_no = kwargs.get('line_no', -1)
         self.value = value
         self.block = block
         super(PlogPattern, self).__init__()
@@ -289,7 +298,7 @@ class PlogLine(PlogPattern):
         if matched:
             groups = matched.group()
             self.matched = matched.string
-            return (True, self.matched)
+            return (True, matched)
         else:
             v = line == self.get_value()
             return (v, None)
