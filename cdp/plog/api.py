@@ -41,6 +41,8 @@ class Plog( mixins.PlogFileMixin,
         self.line_count = 0
         self.data_blocks = []
         self.open_blocks = {}
+        self.terminator = kwargs.get('terminator', self.__class__.terminator)
+        self.whitespace = kwargs.get('whitespace', self.__class__.whitespace)
         super(Plog, self).__init__(*args, **kwargs)
 
     def run(self, parser=None):
@@ -59,10 +61,22 @@ class Plog( mixins.PlogFileMixin,
         line_no = 0
         for line in _file:
             line_no += 1
-            parser(line[:-1], line_no=line_no)
+            clean = self.clean_line(line)
+            for cl in clean:
+                parser(cl, line_no=line_no)
 
         self.close_blocks()
         self.print_status()
+
+    def clean_line(self, line):
+        '''
+        Return a value of clean information for a single line
+        from the file
+        '''
+        stripped = line[:-1]
+        cleaned_line = stripped.replace(self.whitespace, ' ')
+        split_line = cleaned_line.split(self.terminator)
+        return split_line
 
     def print_status(self):
         print 'finish'
@@ -80,23 +94,22 @@ class Plog( mixins.PlogFileMixin,
 
         self.line_count += 1
         # Find header_line blocks matching this pline
-        blocks, header = self.get_blocks_with_header_footer(pline)
+        blocks, is_header = self.get_blocks_with_header_footer(pline)
         # one or more blocks detected
         pr = ''
 
         for block in blocks:
 
             # import pdb; pdb.set_trace()
-            if block.is_open is not True and header:
+            if block.is_open is not True and is_header:
                 block.open()
                 bl = PlogBlock(ref=block.ref)
                 self.open_blocks[block] = bl
                 pr = '#%s+' % colored(pline.line_no, 'grey')
                 print
             else:
-                self.open_blocks[block].add_data(pline)
-
-                if header is not True:
+                if block in self.open_blocks and is_header is not True:
+                    self.open_blocks[block].add_data(pline)
                     block.close()
                     # Finished block
                     # import pdb;pdb.set_trace()

@@ -143,9 +143,18 @@ class PlogBlockMixin(MixinBase):
         # Loop blocks.
         _blocks = []
 
+        mtch = None
+        mtch_f = None
+        reg = None
+        reg_f = None
+
         for block in self.blocks:
-            mtch, reg = block.header.match(mline)
-            mtch_f, reg_f = block.footer.match(mline)
+            if block.header:
+                mtch, reg = block.header.match(mline)
+
+            if block.footer:
+                mtch_f, reg_f = block.footer.match(mline)
+            
             if mtch_f or mtch:
                 _blocks.append(block)
 

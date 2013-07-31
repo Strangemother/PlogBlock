@@ -1,12 +1,12 @@
 from api import Plog
 from patterns import PlogBlock, PlogLine
-from exampledata import CDP_DATA
-plog = Plog(CDP_DATA)
-empty_block = PlogBlock('', ref='empty')
 
+f = open('test_data2.txt', 'r')
+plog = Plog(f, whitespace='|')
 # Capture a device object.
 device_block = PlogBlock('Device ID', ref='Device')
 footer_line = PlogLine('----------').anything()
 device_block.footer = footer_line
-plog.add_blocks(device_block)
+lock = PlogBlock('Duplex', ref='Random').anything()
+plog.add_blocks(lock)
 plog.run()
