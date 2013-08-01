@@ -46,20 +46,46 @@ class VerEx(PatternBase):
     # ---------------------------------------------
 
     def anything(self):
+        '''
+        Accept any value at this point
+
+            >>> VerEx().anything()
+
+        '''
         return self.add('(.*)')
 
     @re_escape
     def anything_but(self, value):
+        '''
+        Accept any value, except the value provided.
+
+            >>> VerEx().anything_but('A-Z0-9')
+        '''
         return self.add('([^' + value + ']*)')
 
     def end_of_line(self):
+        '''
+        this should be appended last of all your called methods if
+        searching for a terminated value.
+        Assert the end of a string at this given point
+
+            >>> VerEx('foo').maybe('bar').end_of_line()
+        '''
         return self.add('$')
 
     @re_escape
     def maybe(self, value):
+        '''
+        The value passed is potentially a match
+
+            >>> VerEx('foo').maybe('bar')
+        '''
         return self.add("(" + value + ")?")
 
     def start_of_line(self):
+        '''
+        this is used internally when required.
+        '''
         return self.add('^')
 
     @re_escape
@@ -165,20 +191,21 @@ class PlogBlock(PlogPattern):
     def __repr__(self):
         s = self.header.format if self.ref is None else self.ref
         c = len(self.data)
-        return '<PlogBlock: \'%s\'~%s>' % (s, c)
+        return '<%s: \'%s\'~%s>' % (self.__class__.__name__, s, c)
 
     def __str__(self):
 
         s = self.header if self.ref is None else self.ref
         c = len(self.data)
-        return "<PlogBlock: %s~%s>" % (s, c)
+        return "<%s: %s~%s>" % (self.__class__.__name__, s, c)
+
 
     def add_data(self, data):
         self.data.append(data)
 
     def compile(self):
         '''Compile the header object ready to match testing'''
-       
+
         if self.pre_compile == True:
             if self.header:
                 self.header_compiled = self.header.compile()
@@ -192,7 +219,37 @@ class PlogBlock(PlogPattern):
                 self.footer_compiled = None
 
         return (self.header_compiled, self.footer_compiled)
-                
+
+    def ref():
+        doc = "The ref property."
+        def fget(self):
+            return self.get_ref()
+        def fset(self, value):
+            self.set_ref(value)
+        def fdel(self):
+            del self._ref
+        return locals()
+    ref = property(**ref())
+
+    def set_ref(self, value):
+        self._ref = value
+
+    def get_ref(self):
+        return self._ref
+
+    def add_lines(self, *args):
+        '''
+        Apply arguments for each line added to the validation routine
+        '''
+        for line in args:
+            self.add_line(line)
+
+    def add_lines(self, line):
+        '''
+        Apply a PlogLine to the PlogBlock. If the line is a string,
+        it'll be converted to a PlogLine
+        '''
+
     def header():
         doc = "The headerline for the PlogBlock"
         def fget(self):
@@ -218,7 +275,7 @@ class PlogBlock(PlogPattern):
     def set_header_line(self, plog_line):
         ''' The header line of the block
         to validate a start object.'''
-        
+
         line = plog_line
         if type(plog_line) == str:
             line = PlogLine(plog_line)
@@ -239,7 +296,7 @@ class PlogBlock(PlogPattern):
         return self._footer_line
 
     def open(self):
-        ''' Open the block during file enumeration to 
+        ''' Open the block during file enumeration to
         begin recieve lines'''
         self.is_open = True
 
@@ -255,6 +312,13 @@ class PlogBlock(PlogPattern):
 #   IP address: 10.240.14.3
 # Power request id: 23025, Power management id: 3
 
+class DjangoPlogBlock(PlogBlock):
+    '''
+    Wraps a PlogBlock into a django mode using ref's from
+    field values.
+    '''
+
+
 class PlogLine(PlogPattern):
     # Define a line to match based upon it's value
     '''Define a single line to match'''
@@ -267,7 +331,7 @@ class PlogLine(PlogPattern):
         Pass block to define the parent block object of this
         line. This may be None
         '''
-        
+
         # the value found on the last match() method call
         self.matched = None
         self.line_no = kwargs.get('line_no', -1)
@@ -275,7 +339,7 @@ class PlogLine(PlogPattern):
         self.block = block
         super(PlogPattern, self).__init__()
 
-        # Assign kwargs correctly into the pattern style. 
+        # Assign kwargs correctly into the pattern style.
 
 
 
@@ -283,7 +347,7 @@ class PlogLine(PlogPattern):
 
         self.start_of_line()
         return self.then(value)
-        
+
 
     def compile(self):
         '''
@@ -302,7 +366,7 @@ class PlogLine(PlogPattern):
     def match(self, line):
         '''
         recieve a plogline
-        Return tuple of True/False if the value matches the value 
+        Return tuple of True/False if the value matches the value
         and the matched object if one exists.
         '''
         matched = None
@@ -325,7 +389,7 @@ class PlogLine(PlogPattern):
         self.value = value
 
     def __str__(self):
-        return 'PlogLine: \"%s\":#%s' % (self.value, self.line_no)
+        return 'PlogLine #%s: \"%s\"' % (self.line_no, self.value,)
 
     def __repr__(self):
         return '<%s>' % self.__str__()
