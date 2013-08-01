@@ -8,5 +8,5 @@ device_block = PlogBlock('Device ID', ref='Device')
 footer_line = PlogLine('----------').anything()
 device_block.footer = footer_line
 lock = PlogBlock('Duplex', ref='Random').anything()
-plog.add_blocks(lock)
+plog.add_blocks(device_block)
 plog.run()
