@@ -72,15 +72,15 @@ class PlogBlockMixin(MixinBase):
 
     def block_match(self, block, line, string, reg):
         '''
-        Method called upon a successfull match of a block 
-        header 
+        Method called upon a successfull match of a block
+        header
 
         block {PlogBlock} - The block containing the matched PlogLine
-        line {PlogLine} - PlogLine matched 
+        line {PlogLine} - PlogLine matched
         string {str} - String matched from file
         reg {regex} - Regex SRE match object (if it exists)
         '''
-        
+
         #print '> Block', block
         #print '  Match', line
         #print '  Found', string, '\n'
@@ -90,11 +90,19 @@ class PlogBlockMixin(MixinBase):
         '''Call each block to compile as needed'''
         for block in self.blocks:
             block.compile()
-    
-    def close_blocks(self):
+
+    def close_all_blocks(self):
+        '''
+        Close any dangling blocks (blocks open at the end of parsing)
+        and return a list of closed blocks.
+        '''
+        closed =[]
         for block in self.blocks:
             if block.is_open:
+                print 'force close', block.ref
+                closed.append(block)
                 block.close()
+        return closed
 
     def add_blocks(self, *args):
         '''
@@ -154,7 +162,7 @@ class PlogBlockMixin(MixinBase):
 
             if block.footer:
                 mtch_f, reg_f = block.footer.match(mline)
-            
+
             if mtch_f or mtch:
                 _blocks.append(block)
 
@@ -163,7 +171,7 @@ class PlogBlockMixin(MixinBase):
 
             if mtch_f:
                 self.block_match(block, block.footer, mline, reg or reg_f)
-                
+
 
         return (_blocks, True if mtch else False, )
 

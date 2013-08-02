@@ -6,8 +6,8 @@ and key value pair definitions, output it parsed
 and applied to an object - later passed through the
 api into the django model
 
-Usage: 
-    api.py 
+Usage:
+    api.py
 
 Options:
     --pre-compile=False Optionally don't complile string patterns before use
@@ -65,7 +65,8 @@ class Plog( mixins.PlogFileMixin,
             for cl in clean:
                 parser(cl, line_no=line_no)
 
-        self.close_blocks()
+
+        self.close_data_blocks( *self.close_all_blocks() )
         self.print_status()
 
     def clean_line(self, line):
@@ -82,6 +83,23 @@ class Plog( mixins.PlogFileMixin,
         print 'finish'
         print 'PlogBlocks', len(self.blocks)
         print 'DataBlocks', len(self.data_blocks)
+
+    def close_data_blocks(self, *args):
+        '''
+        Safely close the open block and remove from open block elements.
+        Add data block to
+        return the data blocks
+        '''
+        dbs = []
+        for block in args:
+            # import pdb; pdb.set_trace()
+            if block.is_open:
+                block.close()
+            data_block = self.open_blocks[block]
+            self.data_blocks.append(data_block)
+            dbs.append(data_block)
+            self.open_blocks[block] = None
+        return dbs
 
     def parse_line(self, line, *args, **kwargs):
         '''
@@ -110,31 +128,26 @@ class Plog( mixins.PlogFileMixin,
             else:
                 if block in self.open_blocks and is_header is not True:
                     self.open_blocks[block].add_data(pline)
-                    block.close()
-                    # Finished block
-                    # import pdb;pdb.set_trace()
-                    data_block = self.open_blocks[block]
-                    self.data_blocks.append(data_block)
-                    self.open_blocks[block] = None
+                    data_blocks = self.close_data_blocks(block)
                     pr = colored('-', 'red')
+
                     s = '~%s#%s' % (
-                            colored(len(data_block.data), 'grey'), 
-                            colored(pline.line_no, 'grey'), 
+                            colored(len(data_blocks), 'grey'),
+                            colored(pline.line_no, 'grey'),
                         )
                     sys.stdout.write(s)
-   
         for block in self.open_blocks:
             if block.is_open:
                 self.open_blocks[block].add_data(pline)
                 pr = '%s%s' % (pr, colored('.', 'grey') )
 
         bl = len(blocks)
-        
+
         if bl > 0:
             ct = ( colored('[', 'grey'), colored('%s' % bl, 'white'), colored(']', 'grey'), )
             d = "%s%s%s" % ct
             sys.stdout.write(d)
-            
+
         sys.stdout.write(pr)
 
 
