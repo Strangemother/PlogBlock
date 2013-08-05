@@ -243,7 +243,6 @@ class PlogBlock(PlogPattern):
 
         return (self.header_compiled, self.footer_compiled)
 
-<<<<<<< HEAD
     def ref():
         doc = "The ref property."
         def fget(self):
@@ -261,7 +260,7 @@ class PlogBlock(PlogPattern):
     def get_ref(self):
         return self._ref
 
-    def add_lines(self, line):
+    def add_lines(self, **kwargs):
 
         for ref in kwargs:
             line = kwargs[ref]
@@ -372,7 +371,7 @@ class PlogLine(PlogPattern):
         '''
 
         self._ref=None
-        
+
         # the value found on the last match() method call
         self.matched = None
         self.line_no = kwargs.get('line_no', -1)
