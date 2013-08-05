@@ -69,7 +69,7 @@ class Plog( mixins.PlogFileMixin,
         self.close_data_blocks( *self.close_all_blocks() )
         self.print_status()
 
-    def clean_line(self, line):
+    def clean_line(self, line, strip=True):
         '''
         Return a value of clean information for a single line
         from the file
@@ -77,7 +77,10 @@ class Plog( mixins.PlogFileMixin,
         stripped = line[:-1]
         cleaned_line = stripped.replace(self.whitespace, ' ')
         split_line = cleaned_line.split(self.terminator)
-        return split_line
+        splits = []
+        for s in split_line:
+            splits.append(s.strip())
+        return splits
 
     def print_status(self):
         print 'finish'
@@ -122,6 +125,11 @@ class Plog( mixins.PlogFileMixin,
             if block.is_open is not True and is_header:
                 block.open()
                 bl = PlogBlock(ref=block.ref)
+                bl.header = block.header
+                bl.footer = block.footer
+                bl.lines = block.lines
+                bl.line_refs = block.line_refs
+
                 self.open_blocks[block] = bl
                 pr = '#%s+' % colored(pline.line_no, 'grey')
                 print
@@ -129,6 +137,7 @@ class Plog( mixins.PlogFileMixin,
                 if block in self.open_blocks and is_header is not True:
                     self.open_blocks[block].add_data(pline)
                     data_blocks = self.close_data_blocks(block)
+                    
                     pr = colored('-', 'red')
 
                     s = '~%s#%s' % (
@@ -136,10 +145,18 @@ class Plog( mixins.PlogFileMixin,
                             colored(pline.line_no, 'grey'),
                         )
                     sys.stdout.write(s)
+
         for block in self.open_blocks:
             if block.is_open:
-                self.open_blocks[block].add_data(pline)
-                pr = '%s%s' % (pr, colored('.', 'grey') )
+                added = self.open_blocks[block].add_data(pline)
+                v =  colored('_', 'grey')
+                if added is not True:
+                    if pline.value != '':
+                        v =  colored('_', 'red')
+                        self.open_blocks[block].add_missed(pline)
+                    else:
+                        v = ''
+                pr = '%s%s' % (pr, v)
 
         bl = len(blocks)
 
