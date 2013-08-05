@@ -26,7 +26,7 @@ class VerEx(PatternBase):
     And any string you inserted will be automatically grouped
     excepte `tab` and `add`.
     '''
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.s = ''
         self.modifiers = {'I': 0, 'M': 0}
 
@@ -149,9 +149,31 @@ class PlogPattern(VerEx):
         defined to be a set of attributes to
         filter the object definition
         '''
-        super(PlogPattern, self).__init__(*args, **kwargs)
+        self._ref = None
+
         if len(args) > 0:
             self.__value = args[0]
+
+        self.set_ref( kwargs.get('ref', None) )
+
+        super(PlogPattern, self).__init__(*args, **kwargs)
+
+    def ref():
+        doc = "The ref property."
+        def fget(self):
+            return self.get_ref()
+        def fset(self, value):
+            self.set_ref(value)
+        return locals()
+
+    ref = property(**ref())
+
+    def set_ref(self, value):
+        self._ref = value
+
+    def get_ref(self):
+        return self._ref
+
 
 class PlogBlock(PlogPattern):
     '''
@@ -167,8 +189,7 @@ class PlogBlock(PlogPattern):
     is called whist context is open.
     '''
 
-    def __init__(self, header_line=None, \
-        footer_line=None, ref=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         '''
         Pass the PlogLine used to
         validate a header of a given block.
@@ -176,17 +197,19 @@ class PlogBlock(PlogPattern):
         The footer_line is optional but would
         automatically terminate upon a new block.
         '''
-        super(PlogBlock, self).__init__(*args, **kwargs)
-
+        self._ref=None
+        self._lines = []
         self.is_open = False
         self._header_line = None
         self._footer_line = None
         self.compiled = None
         self.pre_compile = kwargs.get('pre_compile', True)
-        self.ref = ref
         self.data = []
-        self.set_header_line(header_line)
-        self.set_footer_line(footer_line)
+        hl = args[0] if len(args) > 0 else None
+        fl = args[1] if len(args) > 1 else None
+        self.set_header_line(hl)
+        self.set_footer_line(fl)
+        super(PlogBlock, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         s = self.header.format if self.ref is None else self.ref
@@ -220,6 +243,7 @@ class PlogBlock(PlogPattern):
 
         return (self.header_compiled, self.footer_compiled)
 
+<<<<<<< HEAD
     def ref():
         doc = "The ref property."
         def fget(self):
@@ -237,19 +261,37 @@ class PlogBlock(PlogPattern):
     def get_ref(self):
         return self._ref
 
-    def add_lines(self, *args):
-        '''
-        Apply arguments for each line added to the validation routine
-        '''
-        for line in args:
+    def add_lines(self, line):
+
+        for ref in kwargs:
+            line = kwargs[ref]
+            if line.ref is None:
+                line.ref = ref
+            else:
+                line._kwarg = ref
             self.add_line(line)
 
-    def add_lines(self, line):
+    def add_line(self, plog_line):
         '''
         Apply a PlogLine to the PlogBlock. If the line is a string,
         it'll be converted to a PlogLine
         '''
+        line = plog_line
+        if type(plog_line) == str:
+            line = PlogLine(plog_line)
+        self._lines.append(line)
 
+
+    def lines():
+        doc = "The lines property."
+        def fget(self):
+            return self._lines
+        def fset(self, value):
+            self._lines = value
+        def fdel(self):
+            del self._lines
+        return locals()
+    lines = property(**lines())
     def header():
         doc = "The headerline for the PlogBlock"
         def fget(self):
@@ -303,9 +345,6 @@ class PlogBlock(PlogPattern):
     def close(self):
         self.is_open = False
 
-    def lines(self):
-        ''' Return a list of lines applied to the
-        block when the block has received some content.'''
 
 # Device ID: AH1CMSW07
 # Entry address(es):
@@ -326,18 +365,20 @@ class PlogLine(PlogPattern):
     # method of pattern matching for the regex checking
     method = 'match' # 'search'
 
-    def __init__(self, value=None, block=None, **kwargs):
+    def __init__(self, value=None, block=None, *args, **kwargs):
         '''
         Pass block to define the parent block object of this
         line. This may be None
         '''
 
+        self._ref=None
+        
         # the value found on the last match() method call
         self.matched = None
         self.line_no = kwargs.get('line_no', -1)
         self.value = value
         self.block = block
-        super(PlogPattern, self).__init__()
+        super(PlogPattern, self).__init__(*args, **kwargs)
 
         # Assign kwargs correctly into the pattern style.
 
