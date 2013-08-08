@@ -37,11 +37,11 @@ bb = Bar().gb
 
 f = open('test_data2.txt', 'r')
 plog = Plog(f, whitespace='|', terminator=',')
-# Capture a device object.
+
 device_block = PlogBlock('Device ID:', ref='Device')
 device_block.header.ref='id'
-footer_line = PlogLine('----------', ref='footer').anything()
-device_block.footer = footer_line
+
+device_block.footer = PlogLine('----------', ref='footer').anything()
 
 lines = {}
 lines['ip_line']         = PlogLine('IP address:')
@@ -57,7 +57,6 @@ lines['prmid_line']      = PlogLine('Power management id:')
 lines['prl_line']        = PlogLine('Power request levels are:')
 
 device_block.add_lines(**lines)
-
 plog.add_blocks(device_block)
 
 plog.run()

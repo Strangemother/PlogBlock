@@ -49,9 +49,10 @@ class VerEx(PatternBase):
         self.s += value
         return self
 
-    def regex(self):
+    def regex(self, value=None):
         ''' get a regular expression object. '''
-        return re.compile(self.s, self.modifiers['I'] | self.modifiers['M'])
+        s = self.s if value is None else value
+        return re.compile(s, self.modifiers['I'] | self.modifiers['M'])
 
     def source(self):
         ''' return the raw string'''
@@ -337,6 +338,10 @@ class PlogBlock(PlogPattern):
             self.data.append(data)
             return True
 
+    def valid(self):
+        for line in self.data:
+            if line.valid() is False: return False
+        return True
 
     def compile(self):
         '''Compile the header, footer and line PlogLine's
@@ -497,9 +502,16 @@ class DjangoPlogBlock(PlogBlock):
     Wraps a PlogBlock into a django mode using ref's from
     field values.
     '''
+    def __init__(self, *args, **kwargs):
+        self.model = kwargs.get('model', None)
+        
     def save(self):
         ''' Save the model returning boolean on success '''
-        val = self.as_dict()
+        if self.model:
+            val = self.as_dict()
+            return self.model(**val).save()
+        return False
+
 
 
 class PlogLine(PlogPattern):
@@ -525,7 +537,33 @@ class PlogLine(PlogPattern):
 
         self.block = block
         self.line_no = kwargs.get('line_no', -1)
+    
+    def validator_regex(self, value=None):
+        '''
+        Return the regex string used to validate the PlogLine or string value.
+        If a validator exists, this is used as the regex, else a string
+        is created from the own value.
+        '''
+        val = self if value is None else value
+        if type(val) == PlogLine:
+            val = val.value
         
+        if self.validator:
+            s = self.validator.line.s
+        else:
+            s = self.s
+        return s
+
+
+    def valid(self, value=None):
+        ''' Return boolean for validity of the field'''
+        v = self.value if value is None else value
+        reg = self.validator_regex()
+        regex = self.regex(reg)
+        matcher = getattr(regex, self.__class__.method)
+        matched = matcher(v)
+
+        return True if matched else False
 
     def startswith(self, value):
         self.start_of_line()
@@ -538,9 +576,6 @@ class PlogLine(PlogPattern):
         and the matched object if one exists.
         '''
         matched = None
-        if self.compiled is not True:
-            self.compile()
-
         matcher = getattr(self.compiled, self.__class__.method)
         matched = matcher(line.value)
 
