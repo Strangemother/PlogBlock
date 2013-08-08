@@ -64,10 +64,7 @@ class Plog( mixins.PlogFileMixin,
             clean = self.clean_line(line)
             for cl in clean:
                 parser(cl, line_no=line_no)
-
-
         self.close_data_blocks( *self.close_all_blocks() )
-        self.print_status()
 
     def clean_line(self, line, strip=True):
         '''
@@ -81,11 +78,6 @@ class Plog( mixins.PlogFileMixin,
         for s in split_line:
             splits.append(s.strip())
         return splits
-
-    def print_status(self):
-        print 'finish'
-        print 'PlogBlocks', len(self.blocks)
-        print 'DataBlocks', len(self.data_blocks)
 
     def close_data_blocks(self, *args):
         '''
@@ -120,15 +112,14 @@ class Plog( mixins.PlogFileMixin,
         pr = ''
 
         for block in blocks:
-
-            # import pdb; pdb.set_trace()
             if block.is_open is not True and is_header:
                 block.open()
-                bl = PlogBlock(ref=block.ref)
+                bl = PlogBlock(ref=block)
                 bl.header = block.header
                 bl.footer = block.footer
                 bl.lines = block.lines
                 bl.line_refs = block.line_refs
+                bl.open_lines = block.open_lines
 
                 self.open_blocks[block] = bl
                 pr = '#%s+' % colored(pline.line_no, 'grey')
@@ -159,36 +150,8 @@ class Plog( mixins.PlogFileMixin,
                 pr = '%s%s' % (pr, v)
 
         bl = len(blocks)
-
         if bl > 0:
             ct = ( colored('[', 'grey'), colored('%s' % bl, 'white'), colored(']', 'grey'), )
             d = "%s%s%s" % ct
             sys.stdout.write(d)
-
         sys.stdout.write(pr)
-
-
-
-        # Matched blocks with this as a header_line
-        # blocks =
-
-        # if in block.
-            # line *should exist as a definition in block
-            # line should be added to the block.
-            # if header line
-                # end current block
-                # start block
-                # add line to block as header line
-            # if footer line
-                # end current block
-                # add line to block as footer line
-        # Check against block headers for matches
-            # if match
-            #   start block
-            #   add line to block as header line
-        # Check against lines for matches.
-            # if match
-            # add line
-            #
-
-

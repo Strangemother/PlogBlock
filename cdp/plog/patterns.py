@@ -12,8 +12,9 @@ class Validator(object):
 
 class PatternBase(object):
     ''' Base mixin object of all Plog Mixins to inherit'''
-    def __init__(self):
-        pass
+    def __init__(self, *args, **kwargs):
+        super(PatternBase, self).__init__()
+        
 
 def re_escape(fn):
     def arg_escaped(this, *args):
@@ -38,9 +39,11 @@ class VerEx(PatternBase):
     excepte `tab` and `add`.
     '''
     def __init__(self, *args, **kwargs):
+        super(VerEx, self).__init__(*args, **kwargs)
         self._multiline = False
         self.s = ''
         self.modifiers = {'I': 0, 'M': 0}
+
 
     def add(self, value):
         self.s += value
@@ -178,9 +181,31 @@ class PlogPattern(VerEx):
         if len(args) > 0:
             self.__value = args[0]
 
-        self.set_ref( kwargs.get('ref', None) )
-
         super(PlogPattern, self).__init__(*args, **kwargs)
+
+        self._compiled = None
+        self.set_ref( kwargs.get('ref', None) )
+        self.strip_clean = kwargs.get('strip', True)
+
+    @property
+    def compiled(self):
+        if not self._compiled:
+           self._compiled = self.compile()
+        return self._compiled
+    @compiled.setter
+    def compiled(self, value):
+        self._compiled = value
+    
+
+    def compile(self):
+        ''' ready the matching re regex item for later use. this method considers
+        the current regex start and fixes it accordingly. '''
+        if self.value == '':
+            self.compiled = None
+        else:
+            self.compiled = self.regex()
+        return self.compiled
+
 
     def ref():
         doc = '''The ref property. A string to define the 
@@ -199,6 +224,19 @@ class PlogPattern(VerEx):
 
     def get_ref(self):
         return self._ref
+
+
+    def cleaned(self):
+        ''' return a clean verson of the string with the regex
+        value stripped
+        '''
+        if self.strip_clean:
+            val = self.get_value()
+            _validator = self.validator.line.s
+            
+            val = re.sub(_validator, '', val)
+            val = val.strip()
+        return val
 
 class PlogBlock(PlogPattern):
     ''' A block of definable content, containing
@@ -219,23 +257,29 @@ class PlogBlock(PlogPattern):
         The footer_line is optional but would
         automatically terminate upon a new block. '''
         self._ref=None
+
         self._lines = []
 
         # Hold a cache of line references to be
         # used against a callback.
         self.line_refs = []
         self.is_open = False
+        self.open_lines = {}
         self._header_line = None
         self._footer_line = None
-        self.compiled = None
         self.pre_compile = kwargs.get('pre_compile', True)
         self.data = []
+
         self.missed = []
+        super(PlogBlock, self).__init__(*args, **kwargs)
+        
         hl = args[0] if len(args) > 0 else None
         fl = args[1] if len(args) > 1 else None
+        
+        
         self.set_header_line(hl)
         self.set_footer_line(fl)
-        super(PlogBlock, self).__init__(*args, **kwargs)
+
 
     def __repr__(self):
         s = self.header.format if self.ref is None else self.ref
@@ -258,18 +302,41 @@ class PlogBlock(PlogPattern):
         does not match a PlogLine format, it will not be added to the data list '''
         # If the block has lines. Validate against the
         # lines to apply value and context.
+        # import pdb; pdb.set_trace()
+
         if len(self.lines) > 0:
+            # Receive a validator (Only if data validates
+            #  against a line)
             data.validator = self.valid_line(data)
+           
             if data.validator:
-                data.ref = data.validator.line.ref
-                # import pdb;pdb.set_trace()
+                # all open lines are closed, as multiline is terminated by
+                # the success of another validated line
+                self.open_lines = {}
+                # The line validated - are string from the file
+                #  has matched the regex pattern of the valid line
+                line = data.validator.line
+                # Provide the reference given to the line
+                data.ref = line.ref
+                # Add the line to multiline open_lines so future data 
+                # passed from the file is pushed into an open line
+                if line._multiline and line not in self.open_lines:
+                    self.open_lines.update({line: data})
+                
                 self.data.append(data)
                 return True
             else:
-                return False
+                for oline in self.open_lines:
+                    olined = self.open_lines[oline]
+                    olined.value += '\n' + data.value
+                    # import pdb; pdb.set_trace()
+                    return True
+                else:
+                    return False
         else:
             self.data.append(data)
             return True
+
 
     def compile(self):
         '''Compile the header, footer and line PlogLine's
@@ -304,6 +371,9 @@ class PlogBlock(PlogPattern):
     ref = property(**ref())
 
     def set_ref(self, value):
+        # import pdb; pdb.set_trace()
+        if type(value) == PlogBlock:
+            value = value.ref
         self._ref = value
 
     def get_ref(self):
@@ -348,7 +418,7 @@ class PlogBlock(PlogPattern):
         '''Retuns an object defining matched lines'''
         _d = _dict or {}
         for x in self.data:
-            _d.update(**{x.ref: x.value})
+            _d.update(**{x.ref: x.cleaned()})
         return _d
 
     def lines():
@@ -390,7 +460,8 @@ class PlogBlock(PlogPattern):
 
         line = plog_line
         if type(plog_line) == str:
-            line = PlogLine(plog_line)
+            ref = plog_line.ref if hasattr(plog_line, 'ref') else 'header'
+            line = PlogLine(plog_line, ref=ref)
         self._header_line = line
 
     def get_header_line(self):
@@ -401,7 +472,7 @@ class PlogBlock(PlogPattern):
         to validate a start object.'''
         line = plog_line
         if type(plog_line) == str:
-            line = PlogLine(plog_line)
+            line = PlogLine(plog_line, ref='footer')
         self._footer_line = line
 
     def get_footer_line(self):
@@ -426,6 +497,9 @@ class DjangoPlogBlock(PlogBlock):
     Wraps a PlogBlock into a django mode using ref's from
     field values.
     '''
+    def save(self):
+        ''' Save the model returning boolean on success '''
+        val = self.as_dict()
 
 
 class PlogLine(PlogPattern):
@@ -438,14 +512,12 @@ class PlogLine(PlogPattern):
     def __init__(self, value=None, block=None, *args, **kwargs):
         ''' Pass block to define the parent block object of this
         line. This may be None '''
-        super(PlogPattern, self).__init__(*args, **kwargs)
+        super(PlogLine, self).__init__(*args, **kwargs)
 
-        self._ref = None
-
+        self._ref = kwargs.get('ref', None)
         # the value found on the last match() method call
         self.matched = None
         self.validator = None
-        self.compiled = None
 
         self.value = value
         if self.value:
@@ -453,22 +525,11 @@ class PlogLine(PlogPattern):
 
         self.block = block
         self.line_no = kwargs.get('line_no', -1)
-
-        # Assign kwargs correctly into the pattern style.
+        
 
     def startswith(self, value):
         self.start_of_line()
         return self.then(value)
-
-    def compile(self):
-        ''' ready the matching re regex item for later use. this method considers
-        the current regex start and fixes it accordingly. '''
-        if self.value == '':
-            self.compiled = None
-        else:
-            self.compiled = self.regex()
-        return self.compiled
-
 
     def match(self, line):
         '''
@@ -477,9 +538,11 @@ class PlogLine(PlogPattern):
         and the matched object if one exists.
         '''
         matched = None
-        if self.compiled:
-            matcher = getattr(self.compiled, self.__class__.method)
-            matched = matcher(line.value)
+        if self.compiled is not True:
+            self.compile()
+
+        matcher = getattr(self.compiled, self.__class__.method)
+        matched = matcher(line.value)
 
         if matched:
             groups = matched.group()
@@ -494,6 +557,7 @@ class PlogLine(PlogPattern):
 
     def set_value(self, value):
         self.value = value
+
 
     def __str__(self):
         return 'PlogLine #%s: \"%s\"' % (self.line_no, self.value,)
