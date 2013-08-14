@@ -13,14 +13,17 @@ Options:
     --pre-compile=False Optionally don't complile string patterns before use
 '''
 import docopt
-
 import mixins
 from patterns import PlogLine, PlogBlock
 from termcolor import colored
 import sys
 
-from colorama import init
-init()
+
+try:
+    from colorama import init
+    init()
+except: pass
+
 
 class Plog( mixins.PlogFileMixin,
             mixins.PlogBlockMixin):
@@ -123,7 +126,6 @@ class Plog( mixins.PlogFileMixin,
 
                 self.open_blocks[block] = bl
                 pr = '#%s+' % colored(pline.line_no, 'grey')
-                print
             else:
                 if block in self.open_blocks and is_header is not True:
                     self.open_blocks[block].add_data(pline)
@@ -135,7 +137,7 @@ class Plog( mixins.PlogFileMixin,
                             colored(len(data_blocks), 'grey'),
                             colored(pline.line_no, 'grey'),
                         )
-                    sys.stdout.write(s)
+                    # sys.stdout.write(s)
 
         for block in self.open_blocks:
             if block.is_open:
@@ -153,5 +155,5 @@ class Plog( mixins.PlogFileMixin,
         if bl > 0:
             ct = ( colored('[', 'grey'), colored('%s' % bl, 'white'), colored(']', 'grey'), )
             d = "%s%s%s" % ct
-            sys.stdout.write(d)
-        sys.stdout.write(pr)
+            # sys.stdout.write(d)
+        # sys.stdout.write(pr)

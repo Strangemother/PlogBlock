@@ -1,0 +1,34 @@
+{% extends 'cdp/base.html' %}
+
+{% block main %}
+<div class="main wrapper clearfix">
+
+    <article>
+        <header>
+            <h1>How it works</h1>
+            <p>This application has been setup to read a CDP log file. Upload the file and run.</p>
+            <p>It may take some time to crunch the numbers so be gentle and let it do it's thing...</p>
+        </header>
+        <section>
+            <h2>Upload Your File</h2>
+            <div>
+                <form action='{% url 'cdp_index' %}' enctype="multipart/form-data" method="POST">
+                    {{ form }}
+                    {% csrf_token %}
+                    <input class='upload-button' type='submit' value='Upload and Run' />
+                </form>
+            </div>
+            
+        </section>
+        
+    </article>
+
+    <aside>
+        <h3>Command Line</h3>
+        <p>If your file is huge and the web interface isn't working, the parsing process can be performed on the command line
+            using the implemented python lib "PlogBlock"</p>
+        <p>Some requirements may need to be installed prior to use, namely python. To use the command line, <a href="#">click here</a>.</p>
+    </aside>
+
+</div> <!-- #main -->
+{% endblock %}

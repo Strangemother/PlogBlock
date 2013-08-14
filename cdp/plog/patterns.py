@@ -1,4 +1,250 @@
 import re
+class MixinBase(object):
+    ''' Base mixin object of all Plog Mixins to inherit'''
+    def __init__(self, *args, **kwargs):
+        pass
+
+class PlogBlockRefMixin(MixinBase):
+
+    def __init__(self, *args, **kwargs):
+        self._ref=None
+        super(PlogBlockRefMixin, self).__init__(*args, **kwargs)
+
+    def ref():
+        doc = "The ref property."
+        def fget(self):
+            return self.get_ref()
+        def fset(self, value):
+            self.set_ref(value)
+        def fdel(self):
+            del self._ref
+        return locals()
+    ref = property(**ref())
+
+    def set_ref(self, value):
+        # import pdb; pdb.set_trace()
+        if type(value) == PlogBlock:
+            value = value.ref
+        self._ref = value
+
+    def get_ref(self):
+        return self._ref
+
+
+class PlogBlockLineMixin(PlogBlockRefMixin):
+    ''' Mixin to help line acceptance on an object'''
+
+    def __init__(self, *args, **kwargs):
+        self.open_lines = {}
+        self._header_line = None
+        self._footer_line = None
+        self._lines = []
+        # Hold a cache of line references to be
+        # used against a callback.
+        self.line_refs = []
+        super(PlogBlockLineMixin, self).__init__(*args, **kwargs)
+
+    def lines():
+        doc = "The lines property."
+        def fget(self):
+            return [self.header] + self._lines + [self.footer]
+        def fset(self, value):
+            self._lines = value
+        def fdel(self):
+            del self._lines
+        return locals()
+    lines = property(**lines())
+
+    def as_tuples(self):
+        return [(x.ref, x,) for x in self.data]
+
+    def as_dict(self, _dict=None, exclude=None, include=None):
+        '''Retuns an object defining matched lines'''
+        if exclude is None:
+            exclude = ['footer']
+
+        _d = _dict or {}
+        for x in self.data:
+            if x.ref not in exclude:
+                _d.update(**{x.ref: x.clean()})
+        return _d
+
+    def header():
+        doc = "The headerline for the PlogBlock"
+        def fget(self):
+            return self.get_header_line()
+        def fset(self, value):
+            self.set_header_line(value)
+        def fdel(self):
+            self.set_header_line(None)
+        return locals()
+    header = property(**header())
+
+    def footer():
+        doc = "The footerline for the PlogBlock"
+        def fget(self):
+            return self.get_footer_line()
+        def fset(self, value):
+            self.set_footer_line(value)
+        def fdel(self):
+            self.set_footer_line(None)
+        return locals()
+    footer = property(**footer())
+
+    def set_header_line(self, plog_line):
+        ''' The header line of the block
+        to validate a start object.'''
+
+        line = plog_line
+        if type(plog_line) == str:
+            ref = plog_line.ref if hasattr(plog_line, 'ref') else 'header'
+            line = PlogLine(plog_line, ref=ref)
+        self._header_line = line
+
+    def get_header_line(self):
+        return self._header_line
+
+    def set_footer_line(self, plog_line):
+        ''' The footer line of the block
+        to validate a start object.'''
+        line = plog_line
+        if type(plog_line) == str:
+            line = PlogLine(plog_line, ref='footer')
+        self._footer_line = line
+
+    def get_footer_line(self):
+        return self._footer_line
+
+    def add_lines(self, **kwargs):
+        for ref in kwargs:
+            line = kwargs[ref]
+            if line.ref is None:
+                line.ref = ref
+            else:
+                line._kwarg = ref
+            self.add_line(line)
+            self.line_refs.append({line.ref, line})
+
+    def add_line(self, plog_line):
+        ''' Apply a PlogLine to the PlogBlock. If the line is a string,
+        it'll be converted to a PlogLine '''
+        line = plog_line
+        if type(plog_line) == str:
+            line = PlogLine(plog_line)
+        self._lines.append(line)
+
+    def valid_line(self, plog_line):
+        ''' Returns object or None to define if the passed plog_line
+        is a valid line within the applied validator lines.
+        If the plog_line passed matches the format of a PlogLine within 
+        self.lines, the matching validator line will be returned else None will
+        return. '''
+        for pline in self.lines:
+            matched, sre_match = pline.match(plog_line)
+            if matched:
+                v = Validator(**{'sre': sre_match, 'line': pline})
+                return v
+        return None
+
+    def valid(self):
+        for line in self.data:
+            if line.valid() is False: return False
+        return True
+
+
+class PlogBlockDataMixin(PlogBlockLineMixin):
+    
+    def __init__(self, *args, **kwargs):
+        self.data = []
+        super(PlogBlockDataMixin, self).__init__(*args, **kwargs)
+
+
+    def add_data(self, data, validate=True):
+        ''' Add data to the block (a PlogLine). 
+        If validation is True (default) and validation lines have been applied,
+        the value will be validated before data append. If the value 
+        does not match a PlogLine format, it will not be added to the data list '''
+        # If the block has lines. Validate against the
+        # lines to apply value and context.
+        # import pdb; pdb.set_trace()
+
+        if len(self.lines) > 0:
+            # Receive a validator (Only if data validates
+            #  against a line)
+            data.validator = self.valid_line(data)
+           
+            if data.validator:
+                # all open lines are closed, as multiline is terminated by
+                # the success of another validated line
+                self.open_lines = {}
+                # The line validated - are string from the file
+                #  has matched the regex pattern of the valid line
+                line = data.validator.line
+                # Provide the reference given to the line
+                data.ref = line.ref
+                # Add the line to multiline open_lines so future data 
+                # passed from the file is pushed into an open line
+                if line._multiline and line not in self.open_lines:
+                    self.open_lines.update({line: data})
+                
+                self.data.append(data)
+                return True
+            else:
+                for oline in self.open_lines:
+                    olined = self.open_lines[oline]
+                    olined.value += '\n' + data.value
+                    # import pdb; pdb.set_trace()
+                    return True
+                else:
+                    return False
+        else:
+            self.data.append(data)
+            return True 
+
+
+class PlogBlockFileMixin(PlogBlockDataMixin):
+    '''
+    A PlogFileMixin is designed to wrap a file object to
+    represent correctly for enumeration. You can pass a string or
+    a file object.
+    Strings are converted to cStringIO.StringIO before use.
+    Pass this to the class for easy get_file, set_file methods
+    '''
+    def __init__(self, *args, **kwargs):
+        ''' initial file can be given '''
+        self._file = None
+        self._data = None
+
+        if len(args) > 0:
+            ''' could be file or string'''
+            self.set_data(args[0])
+
+        super(PlogBlockFileMixin, self).__init__(*args, **kwargs)
+
+    def set_file(self, log_file):
+        ''' Add a file to the class to parse
+        This will return a StringIO if a string
+        was passed as data.'''
+        self.set_data(log_file)
+
+    def set_data(self, data):
+        ''' wrapper for applying the file content
+        to the class'''
+        if type(data) == str:
+            output = cStringIO.StringIO(data)
+            self._data = output
+        else:
+            self._data = data
+
+    def get_data(self):
+        return self._data
+
+    def get_file(self):
+        ''' return the internal file,
+        This will return a StringIO if a string
+        was passed as data
+        '''
+        return self.get_data()
 
 
 class Validator(object):
@@ -14,14 +260,13 @@ class PatternBase(object):
     ''' Base mixin object of all Plog Mixins to inherit'''
     def __init__(self, *args, **kwargs):
         super(PatternBase, self).__init__()
-        
+
 
 def re_escape(fn):
     def arg_escaped(this, *args):
         t = [isinstance(a, VerEx) and a.s or re.escape(str(a)) for a in args]
         return fn(this, *t)
     return arg_escaped
-
 
 
 class VerEx(PatternBase):
@@ -39,10 +284,11 @@ class VerEx(PatternBase):
     excepte `tab` and `add`.
     '''
     def __init__(self, *args, **kwargs):
-        super(VerEx, self).__init__(*args, **kwargs)
         self._multiline = False
         self.s = ''
         self.modifiers = {'I': 0, 'M': 0}
+        
+        super(VerEx, self).__init__(*args, **kwargs)
 
 
     def add(self, value):
@@ -182,11 +428,27 @@ class PlogPattern(VerEx):
         if len(args) > 0:
             self.__value = args[0]
 
+        self._cleaned_data = None
+        self._compiled = None
+        self.strip_clean = kwargs.get('strip', True)
+        
         super(PlogPattern, self).__init__(*args, **kwargs)
 
-        self._compiled = None
         self.set_ref( kwargs.get('ref', None) )
-        self.strip_clean = kwargs.get('strip', True)
+
+        
+
+    @property
+    def cleaned_data(self):
+        cl = self._cleaned_data
+        if cl is None:
+            cl = self.clean()
+        return cl
+
+    @cleaned_data.setter
+    def cleaned_data(self, value):
+        self._clean_data = value
+    
 
     @property
     def compiled(self):
@@ -226,8 +488,7 @@ class PlogPattern(VerEx):
     def get_ref(self):
         return self._ref
 
-
-    def cleaned(self):
+    def clean(self):
         ''' return a clean verson of the string with the regex
         value stripped
         '''
@@ -237,9 +498,11 @@ class PlogPattern(VerEx):
             
             val = re.sub(_validator, '', val)
             val = val.strip()
-        return val
+            self._cleaned_data = val
+        return self._cleaned_data
 
-class PlogBlock(PlogPattern):
+
+class PlogBlock(PlogPattern, PlogBlockFileMixin):
     ''' A block of definable content, containing
     a list of Plog lines.
 
@@ -257,91 +520,35 @@ class PlogBlock(PlogPattern):
 
         The footer_line is optional but would
         automatically terminate upon a new block. '''
-        self._ref=None
-
-        self._lines = []
-
-        # Hold a cache of line references to be
-        # used against a callback.
-        self.line_refs = []
         self.is_open = False
-        self.open_lines = {}
-        self._header_line = None
-        self._footer_line = None
-        self.pre_compile = kwargs.get('pre_compile', True)
-        self.data = []
 
+        self.pre_compile = kwargs.get('pre_compile', True)
         self.missed = []
-        super(PlogBlock, self).__init__(*args, **kwargs)
         
+        super(PlogBlock, self).__init__(*args, **kwargs)
         hl = args[0] if len(args) > 0 else None
         fl = args[1] if len(args) > 1 else None
         
-        
         self.set_header_line(hl)
         self.set_footer_line(fl)
+        
 
 
     def __repr__(self):
-        s = self.header.format if self.ref is None else self.ref
+        ref = self.get_ref()
+        s = self.header.format if ref is None else ref
         c = len(self.data)
         return '<%s: \'%s\'~%s>' % (self.__class__.__name__, s, c)
 
     def __str__(self):
+        ref = self.get_ref()
 
-        s = self.header if self.ref is None else self.ref
+        s = self.header if ref is None else ref
         c = len(self.data)
         return "<%s: %s~%s>" % (self.__class__.__name__, s, c)
 
     def add_missed(self, pline):
         self.missed.append(pline)
-
-    def add_data(self, data, validate=True):
-        ''' Add data to the block (a PlogLine). 
-        If validation is True (default) and validation lines have been applied,
-        the value will be validated before data append. If the value 
-        does not match a PlogLine format, it will not be added to the data list '''
-        # If the block has lines. Validate against the
-        # lines to apply value and context.
-        # import pdb; pdb.set_trace()
-
-        if len(self.lines) > 0:
-            # Receive a validator (Only if data validates
-            #  against a line)
-            data.validator = self.valid_line(data)
-           
-            if data.validator:
-                # all open lines are closed, as multiline is terminated by
-                # the success of another validated line
-                self.open_lines = {}
-                # The line validated - are string from the file
-                #  has matched the regex pattern of the valid line
-                line = data.validator.line
-                # Provide the reference given to the line
-                data.ref = line.ref
-                # Add the line to multiline open_lines so future data 
-                # passed from the file is pushed into an open line
-                if line._multiline and line not in self.open_lines:
-                    self.open_lines.update({line: data})
-                
-                self.data.append(data)
-                return True
-            else:
-                for oline in self.open_lines:
-                    olined = self.open_lines[oline]
-                    olined.value += '\n' + data.value
-                    # import pdb; pdb.set_trace()
-                    return True
-                else:
-                    return False
-        else:
-            self.data.append(data)
-            return True
-
-    def valid(self):
-        for line in self.data:
-            if line.valid() is False: return False
-        return True
 
     def compile(self):
         '''Compile the header, footer and line PlogLine's
@@ -364,125 +571,6 @@ class PlogBlock(PlogPattern):
 
         return (self.header_compiled, self.footer_compiled)
 
-    def ref():
-        doc = "The ref property."
-        def fget(self):
-            return self.get_ref()
-        def fset(self, value):
-            self.set_ref(value)
-        def fdel(self):
-            del self._ref
-        return locals()
-    ref = property(**ref())
-
-    def set_ref(self, value):
-        # import pdb; pdb.set_trace()
-        if type(value) == PlogBlock:
-            value = value.ref
-        self._ref = value
-
-    def get_ref(self):
-        return self._ref
-
-    def add_lines(self, **kwargs):
-
-        for ref in kwargs:
-            line = kwargs[ref]
-            if line.ref is None:
-                line.ref = ref
-            else:
-                line._kwarg = ref
-            self.add_line(line)
-            self.line_refs.append({line.ref, line})
-
-    def add_line(self, plog_line):
-        ''' Apply a PlogLine to the PlogBlock. If the line is a string,
-        it'll be converted to a PlogLine '''
-        line = plog_line
-        if type(plog_line) == str:
-            line = PlogLine(plog_line)
-        self._lines.append(line)
-
-    def valid_line(self, plog_line):
-        ''' Returns object or None to define if the passed plog_line
-        is a valid line within the applied validator lines.
-        If the plog_line passed matches the format of a PlogLine within 
-        self.lines, the matching validator line will be returned else None will
-        return. '''
-        for pline in self.lines:
-            matched, sre_match = pline.match(plog_line)
-            if matched:
-                v = Validator(**{'sre': sre_match, 'line': pline})
-                return v
-        return None
-
-    def as_tuples(self):
-        return [(x.ref, x,) for x in self.data]
-
-    def as_dict(self, _dict=None):
-        '''Retuns an object defining matched lines'''
-        _d = _dict or {}
-        for x in self.data:
-            _d.update(**{x.ref: x.cleaned()})
-        return _d
-
-    def lines():
-        doc = "The lines property."
-        def fget(self):
-            return [self.header] + self._lines + [self.footer]
-        def fset(self, value):
-            self._lines = value
-        def fdel(self):
-            del self._lines
-        return locals()
-    lines = property(**lines())
-
-    def header():
-        doc = "The headerline for the PlogBlock"
-        def fget(self):
-            return self.get_header_line()
-        def fset(self, value):
-            self.set_header_line(value)
-        def fdel(self):
-            self.set_header_line(None)
-        return locals()
-    header = property(**header())
-
-    def footer():
-        doc = "The footerline for the PlogBlock"
-        def fget(self):
-            return self.get_footer_line()
-        def fset(self, value):
-            self.set_footer_line(value)
-        def fdel(self):
-            self.set_footer_line(None)
-        return locals()
-    footer = property(**footer())
-
-    def set_header_line(self, plog_line):
-        ''' The header line of the block
-        to validate a start object.'''
-
-        line = plog_line
-        if type(plog_line) == str:
-            ref = plog_line.ref if hasattr(plog_line, 'ref') else 'header'
-            line = PlogLine(plog_line, ref=ref)
-        self._header_line = line
-
-    def get_header_line(self):
-        return self._header_line
-
-    def set_footer_line(self, plog_line):
-        ''' The footer line of the block
-        to validate a start object.'''
-        line = plog_line
-        if type(plog_line) == str:
-            line = PlogLine(plog_line, ref='footer')
-        self._footer_line = line
-
-    def get_footer_line(self):
-        return self._footer_line
-
     def open(self):
         ''' Open the block during file enumeration to
         begin recieve lines'''
@@ -490,7 +578,7 @@ class PlogBlock(PlogPattern):
 
     def close(self):
         self.is_open = False
-
+    
 
 # Device ID: AH1CMSW07
 # Entry address(es):
@@ -502,17 +590,18 @@ class DjangoPlogBlock(PlogBlock):
     Wraps a PlogBlock into a django mode using ref's from
     field values.
     '''
+
     def __init__(self, *args, **kwargs):
+        super(DjangoPlogBlock, self).__init__(*args, **kwargs)
         self.model = kwargs.get('model', None)
         
-    def save(self):
+
+    def _save(self):
         ''' Save the model returning boolean on success '''
         if self.model:
             val = self.as_dict()
             return self.model(**val).save()
         return False
-
-
 
 class PlogLine(PlogPattern):
     # Define a line to match based upon it's value

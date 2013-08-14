@@ -121,6 +121,9 @@ class PlogBlockMixin(MixinBase):
         _block = block
         if type(block) == str:
             _block = patterns.PlogBlock(block)
+        elif hasattr(_block, 'block'):
+            _block = _block.block
+
         self._blocks.append(_block)
 
 

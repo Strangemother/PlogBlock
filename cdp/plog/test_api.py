@@ -81,7 +81,7 @@ def test_enumerate():
     Holdtime : 124 sec'''
     plog = Plog(CDP_DATA)
     plog._c = 0
-    def counts(line):
+    def counts(line, line_no):
         plog._c = plog._c + 1
 
     plog.run(counts)
