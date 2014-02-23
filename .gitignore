@@ -2,6 +2,7 @@ env/
 env/*
 libs/
 libs/*
+database.sqlite3
 
 #################
 ## Eclipse
