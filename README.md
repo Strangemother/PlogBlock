@@ -1,3 +1,5 @@
+[![Requirements Status](https://requires.io/github/Strangemother/PlogBlock-CDP/requirements.svg?branch=master)](https://requires.io/github/Strangemother/PlogBlock-CDP/requirements/?branch=master)
+
 PlogBlock-for-CDP-files
 =======================
 
