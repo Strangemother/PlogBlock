@@ -1,7 +1,17 @@
 from patterns import PlogLine, PlogBlock
 
 class CDPBlock(object):
+	'''Given as a 'block' through PlugBlockMixin.add_block.
+	The add_block method looks for the `block` attribute and appends
+	it to the running blocks.
 
+	Lines represent each attribute to dicover within the _Start_ and _stop_
+	content of a block. Each `PlogLine` extracts an explicitly designed
+	value, adding it to the 'lines' of a block.
+	A block returns the line value as a dictionary attribute in `Plug.data_block`.
+	'''
+
+	# Define a PlogBlock and its starting value.
 	block = PlogBlock('Device ID:', ref='Device')
 	block.header.ref='device_id'
 
