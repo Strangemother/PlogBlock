@@ -4,6 +4,8 @@ env
 # C extensions
 *.so
 
+x_cdp/
+
 # Packages
 *.egg
 *.egg-info

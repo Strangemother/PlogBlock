@@ -25,7 +25,7 @@ Any `PlogLine` with a `ref` will appear in the result block.
 
 Methods exist to help capture text and understand when to terminate a line. Under-the-hood regex is compiled and ran against the block
 
-#### start_of_line()
+### start_of_line()
 
 Asset the start of a given statement occurs in the pattern. If anything occurs within the match text before the `start_of_line` the line is not valid.
 
@@ -38,7 +38,7 @@ For an easier API, this is wrapped into the PlogLine constructor.
 This is syntactically the same as `startswith('$')` as the first statement
 
 
-#### startswith(value)
+### startswith(value)
 
 Start a line with an explicit value, ensuring no text can exist before the captured value.
 
@@ -49,21 +49,21 @@ is the same as:
 `PlogLine('$')`
 
 
-#### anything_but(value)
+### anything_but(value)
 
 Capture any value except the given value `PlogLine().anything_but('ERROR')`
 
-#### anything()
+### anything()
 
 Capture any valid character without precedence. `PlogLine().find('Weeee').anything()`
 
 This is useful for capturing a line without a return value - utilizing it as a marker or `header`/`footer`.
 
-#### end_of_line()
+### end_of_line()
 
 assert the end of the line for a given expression. Anything after this point is considered a captured value, or the termination of a line.
 
-#### multiline(bool)
+### multiline(bool)
 
 Flat a line is spread over multiple lines.
 
@@ -73,7 +73,7 @@ To note - a line may contain another _line_ underneath a caught position. The `m
 
 For capture of a string with terminators - such as a chat log, with `\n\r` or other terminators, `search_one_line(False)` produces a correct regex flag.
 
-#### add(value)
+### add(value)
 
 Concatenate a literal string to the pattern.
 
@@ -82,20 +82,20 @@ windows_drive = \b[a-z]:\\
 PlogLine().word().add(windows_drive)
 ```
 
-#### any(value)
+### any(value)
 
 Find any part of the given string. `foo` will match `f` and `o`.
 
-#### maybe(value)
+### maybe(value)
 
 Apply a potential match of the given value. `PlogLine("foo").maybe("bar")`
 
-#### find(value)
-#### then(value)
+### find(value)
+### then(value)
 
 Match the given value as regex or a literal string: `PlogLine().find("bar")`
 
-#### range(a[, b])
+### range(a[, b])
 
 Apply a alphanumeric range using numbers or regex literal characters
 
@@ -139,24 +139,24 @@ More interesting combinations are viable:
     * The literal character "0" `0`
 
 
-#### line_break()
+### line_break()
 
 Expect a line break `\n` or `\r\n`
 
-#### tab()
+### tab()
 
 Expect a tab string `\t`
 
-#### word(value)
+### word(value)
 
 Accept any ASCII letter, digit or underscore word with unlimited length.
 
 
-#### OR(value)
+### OR(value)
 
 Test and entire negation to the already expressed line. `PlogLine().word("cake").OR("death")`
 
-#### with_any_case(bool)
+### with_any_case(bool)
 
 A general modifier for the line, used at compile time on the entire line pattern.
 Provide a boolean switch (default `True`) to action the modifier.
@@ -165,7 +165,7 @@ Provide a boolean switch (default `True`) to action the modifier.
 PlogLine().find('unicorn').maybe(' ').with_any_case()
 ```
 
-#### search_one_line(bool)
+### search_one_line(bool)
 
 Ensure the executed pattern occurs on a single line terminating with a standard `line_break()`. If `True`, `multiline()` may not function correctly.
 
