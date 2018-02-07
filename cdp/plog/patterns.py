@@ -136,7 +136,7 @@ class PlogBlockLineMixin(PlogBlockRefMixin):
     def valid_line(self, plog_line):
         ''' Returns object or None to define if the passed plog_line
         is a valid line within the applied validator lines.
-        If the plog_line passed matches the format of a PlogLine within 
+        If the plog_line passed matches the format of a PlogLine within
         self.lines, the matching validator line will be returned else None will
         return. '''
         for pline in self.lines:
@@ -153,16 +153,16 @@ class PlogBlockLineMixin(PlogBlockRefMixin):
 
 
 class PlogBlockDataMixin(PlogBlockLineMixin):
-    
+
     def __init__(self, *args, **kwargs):
         self.data = []
         super(PlogBlockDataMixin, self).__init__(*args, **kwargs)
 
 
     def add_data(self, data, validate=True):
-        ''' Add data to the block (a PlogLine). 
+        ''' Add data to the block (a PlogLine).
         If validation is True (default) and validation lines have been applied,
-        the value will be validated before data append. If the value 
+        the value will be validated before data append. If the value
         does not match a PlogLine format, it will not be added to the data list '''
         # If the block has lines. Validate against the
         # lines to apply value and context.
@@ -172,7 +172,7 @@ class PlogBlockDataMixin(PlogBlockLineMixin):
             # Receive a validator (Only if data validates
             #  against a line)
             data.validator = self.valid_line(data)
-           
+
             if data.validator:
                 # all open lines are closed, as multiline is terminated by
                 # the success of another validated line
@@ -182,11 +182,11 @@ class PlogBlockDataMixin(PlogBlockLineMixin):
                 line = data.validator.line
                 # Provide the reference given to the line
                 data.ref = line.ref
-                # Add the line to multiline open_lines so future data 
+                # Add the line to multiline open_lines so future data
                 # passed from the file is pushed into an open line
                 if line._multiline and line not in self.open_lines:
                     self.open_lines.update({line: data})
-                
+
                 self.data.append(data)
                 return True
             else:
@@ -199,7 +199,7 @@ class PlogBlockDataMixin(PlogBlockLineMixin):
                     return False
         else:
             self.data.append(data)
-            return True 
+            return True
 
 
 class PlogBlockFileMixin(PlogBlockDataMixin):
@@ -252,7 +252,7 @@ class Validator(object):
     def __getitem__(self, v):
         return self.__dict__[v]
 
-    def __init__(self, **entries): 
+    def __init__(self, **entries):
         self.__dict__.update(entries)
 
 
@@ -287,7 +287,7 @@ class VerEx(PatternBase):
         self._multiline = False
         self.s = ''
         self.modifiers = {'I': 0, 'M': 0}
-        
+
         super(VerEx, self).__init__(*args, **kwargs)
 
 
@@ -304,7 +304,7 @@ class VerEx(PatternBase):
         ''' return the raw string'''
         return self.s
     raw = value = source
-    
+
     # ---------------------------------------------
 
     def anything(self):
@@ -340,8 +340,8 @@ class VerEx(PatternBase):
     def multiline(self, v=True):
         '''
         Apply a multiline flag or pass false to remove
-        if multiline is passed, data lines will be appended to 
-        the value of the PlogLine until interuppted by a 
+        if multiline is passed, data lines will be appended to
+        the value of the PlogLine until interuppted by a
         another PlogLine validation or the validation is met
         '''
         self._multiline = True
@@ -431,12 +431,12 @@ class PlogPattern(VerEx):
         self._cleaned_data = None
         self._compiled = None
         self.strip_clean = kwargs.get('strip', True)
-        
+
         super(PlogPattern, self).__init__(*args, **kwargs)
 
         self.set_ref( kwargs.get('ref', None) )
 
-        
+
 
     @property
     def cleaned_data(self):
@@ -448,7 +448,7 @@ class PlogPattern(VerEx):
     @cleaned_data.setter
     def cleaned_data(self, value):
         self._clean_data = value
-    
+
 
     @property
     def compiled(self):
@@ -458,7 +458,7 @@ class PlogPattern(VerEx):
     @compiled.setter
     def compiled(self, value):
         self._compiled = value
-    
+
 
     def compile(self):
         ''' ready the matching re regex item for later use. this method considers
@@ -471,7 +471,7 @@ class PlogPattern(VerEx):
 
 
     def ref():
-        doc = '''The ref property. A string to define the 
+        doc = '''The ref property. A string to define the
         objects value. A friendly name style'''
 
         def fget(self):
@@ -495,7 +495,7 @@ class PlogPattern(VerEx):
         if self.strip_clean:
             val = self.get_value()
             _validator = self.validator.line.s
-            
+
             val = re.sub(_validator, '', val)
             val = val.strip()
             self._cleaned_data = val
@@ -524,14 +524,14 @@ class PlogBlock(PlogPattern, PlogBlockFileMixin):
 
         self.pre_compile = kwargs.get('pre_compile', True)
         self.missed = []
-        
+
         super(PlogBlock, self).__init__(*args, **kwargs)
         hl = args[0] if len(args) > 0 else None
         fl = args[1] if len(args) > 1 else None
-        
+
         self.set_header_line(hl)
         self.set_footer_line(fl)
-        
+
 
 
     def __repr__(self):
@@ -578,7 +578,7 @@ class PlogBlock(PlogPattern, PlogBlockFileMixin):
 
     def close(self):
         self.is_open = False
-    
+
 
 # Device ID: AH1CMSW07
 # Entry address(es):
@@ -594,7 +594,7 @@ class DjangoPlogBlock(PlogBlock):
     def __init__(self, *args, **kwargs):
         super(DjangoPlogBlock, self).__init__(*args, **kwargs)
         self.model = kwargs.get('model', None)
-        
+
 
     def _save(self):
         ''' Save the model returning boolean on success '''
@@ -626,7 +626,7 @@ class PlogLine(PlogPattern):
 
         self.block = block
         self.line_no = kwargs.get('line_no', -1)
-    
+
     def validator_regex(self, value=None):
         '''
         Return the regex string used to validate the PlogLine or string value.
@@ -636,7 +636,7 @@ class PlogLine(PlogPattern):
         val = self if value is None else value
         if type(val) == PlogLine:
             val = val.value
-        
+
         if self.validator:
             s = self.validator.line.s
         else:
