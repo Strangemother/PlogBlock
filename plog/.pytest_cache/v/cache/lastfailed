@@ -1,0 +1,4 @@
+{
+  "test_api.py::test_add_file": true, 
+  "test_api.py::test_file_on_init": true
+}
