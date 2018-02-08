@@ -5,6 +5,7 @@ env
 *.so
 
 x_cdp/
+x_libs/
 
 # Packages
 *.egg
